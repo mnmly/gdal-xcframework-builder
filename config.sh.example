@@ -1,0 +1,37 @@
+# Personal config for gdal-xcframework-builder.
+# Copy to config.sh and edit. config.sh is gitignored.
+
+# Optional: codesign identity. Leave empty to skip codesign.
+# Usually unnecessary — Xcode re-signs frameworks at "Embed & Sign" time when
+# the xcframework is consumed as a Swift Package binary target. Only set this
+# if you're distributing the xcframework standalone for notarization.
+# Run `security find-identity -v -p codesigning` to list available identities.
+CODESIGN_IDENTITY=""
+# Example:
+# CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)"
+
+# Where the final gdal.xcframework + zip should be written.
+# Default is ./output relative to this repo.
+OUTPUT_DIR="${OUTPUT_DIR:-$(pwd)/output}"
+
+# Optional: also copy/replace the xcframework here (e.g. into a Swift package).
+# Leave empty to skip.
+SWIFT_PACKAGE_FRAMEWORKS_DIR=""
+# Example:
+# SWIFT_PACKAGE_FRAMEWORKS_DIR="/Users/you/Development-local/Personal/SwiftPDAL/Frameworks"
+
+# Optional: GitHub repo (owner/name) for `make release`. Leave empty to skip.
+GH_RELEASE_REPO=""
+
+# Architectures (space-separated). Currently only arm64 is tested.
+ARCHS="arm64"
+
+# OGR drivers to disable (space-separated, no OGR_ENABLE_DRIVER_ prefix).
+DISABLED_OGR_DRIVERS="XLS XLSX VFK CAD"
+
+# Extra cmake flags appended to both builds.
+EXTRA_CMAKE_FLAGS=""
+
+# Search paths handed to `dylibbundler -s` so it can resolve @rpath-referenced
+# Homebrew dylibs (e.g. libexpat) without prompting interactively.
+DYLIBBUNDLER_SEARCH_PATHS="/opt/homebrew/lib /opt/homebrew/opt/expat/lib"
