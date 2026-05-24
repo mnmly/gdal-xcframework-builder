@@ -58,8 +58,45 @@ The xcframework is consumed downstream by `SwiftPDAL` (a Swift Package). PDAL is
 - Adding a build phase: insert as a new numbered step; update the `step "N/9 ..."` count consistently.
 - Behaviour changes that affect downstream PDAL linkage (cmake export shape, install_name, rpaths): flag explicitly — PDAL builds against this xcframework's `lib/cmake/gdal/`.
 
+## iOS pipeline (`BUILD_IOS=1`)
+
+When `BUILD_IOS=1`, `build_ios_slices()` runs after `build_macos_slice()` and produces a second xcframework. Both static, arm64-only, iOS 17.0 deployment target.
+
+### Phases (per slice)
+
+1. **deps cache** (`scripts/build-deps.sh <sdk>`): cross-compile 8 deps from source into `work/deps-cache/ios-<sdk>/<dep>-<ver>/`. Order: `sqlite3, expat, libpng, libjpeg, libtiff, geos, proj, libgeotiff`. Idempotent.
+2. **GDAL static configure + build** (`build_ios_gdal <sdk>`): `BUILD_SHARED_LIBS=OFF`, `GDAL_ENABLE_PLUGINS=OFF`, master `*_BUILD_OPTIONAL_DRIVERS=OFF` plus a small allow-list (`GTIFF VRT` raster, `SHAPE GEOJSON SQLITE GPKG` vector). External deps from the cache, NOT GDAL's internal libtiff/libjpeg (see gotcha below).
+3. **Framework assembly** (`scripts/assemble-ios-framework.sh`): `libtool -static` merge of `libgdal.a` + every dep archive EXCEPT `libproj.a` → `gdal.framework/gdal`. Headers copied flat; `Info.plist`, `Modules/module.modulemap` written; CMake exports copied. Same script produces `proj.framework` from `libproj.a` standalone.
+4. **CMake export patch** (`scripts/fix-cmake-static.sh`): rewrites `IMPORTED_LOCATION_RELEASE` → `${_IMPORT_PREFIX}/<exec>`, `INTERFACE_INCLUDE_DIRECTORIES` → `/Headers`, `INTERFACE_LINK_LIBRARIES` to externalised set only; strips `find_dependency()` calls for merged deps from `GDALConfig.cmake`.
+5. **xcframework wrap** (phase 9 of orchestrator): one `xcodebuild -create-xcframework` for gdal (3 slices when iOS), one for proj (2 iOS slices).
+
+### iOS gotchas (read before debugging)
+
+- **iOS SDK 26.x has no libcurl.** Set `GDAL_USE_CURL=OFF` (orchestrator does this). The spec's "use SDK libcurl" assumed older SDKs.
+- **GDAL 3.12's internal libtiff needs libjpeg-turbo 3.1+.** Always disable internal libs (`GDAL_USE_TIFF_INTERNAL=OFF`, same for GEOTIFF/PNG/JPEG/JPEG12) and use the externals from `work/deps-cache/`. Do NOT use the umbrella `GDAL_USE_INTERNAL_LIBS=ON`.
+- **`CMAKE_SYSTEM_PROCESSOR arm64`** is mandatory in the toolchain file; libjpeg-turbo crashes without it.
+- **PROJ's `proj.db` generation needs a runnable HOST sqlite3.** Pass `EXE_SQLITE3=/usr/bin/sqlite3`. Don't stub.
+- **libgeotiff 1.7.3 cross-compile** needs `CMAKE_POLICY_VERSION_MINIMUM=3.5`, explicit `PROJ_LIBRARY`/`TIFF_LIBRARY`/`JPEG_LIBRARY` paths (its bespoke FindPROJ.cmake ignores `CMAKE_PREFIX_PATH`), and `HAVE_TIFFOPEN=1 HAVE_TIFFMERGEFIELDINFO=1` to bypass try-compile probes.
+- **proj-config.cmake** includes a legacy `proj4-targets.cmake` that references the original install-tree path. `fix-cmake-static.sh` deletes the proj4-* files and strips the include.
+- **GDALConfig.cmake's `find_dependency()` calls** for merged deps (TIFF, EXPAT, ZLIB, etc.) would fail or resolve to wrong Homebrew dylibs at consumer time. `fix-cmake-static.sh` strips them — keep only PROJ.
+- **No `Versions/A` dance on iOS frameworks.** Flat layout; the macOS `FW_VERSION` code path doesn't apply.
+- **`dylibbundler` MUST NOT run on iOS slices.** Macros-only. The orchestrator's iOS path doesn't touch it.
+- **Toolchain file naming**: SDK arg `simulator` → `scripts/toolchain/ios-simulator.cmake`. Keep the suffix identical to the SDK arg.
+
+### iOS config knobs (config.sh)
+
+- `BUILD_IOS=1`
+- `IOS_DEPLOYMENT_TARGET="17.0"`
+- `IOS_ENABLED_RASTER_DRIVERS="GTIFF VRT"`
+- `IOS_ENABLED_VECTOR_DRIVERS="SHAPE GEOJSON SQLITE GPKG"`
+
+### proj.xcframework subtle constraint
+
+PROJ ships as a standalone iOS xcframework but its `libproj.a` depends on sqlite3 + libtiff. Those are merged into gdal.xcframework, not into proj.xcframework. Consequence: **proj.xcframework alone won't link on iOS** — consumers must link gdal alongside. Documented in README "Why two artifacts on iOS".
+
 ## Out of scope
 
 - Cross-compiling for x86_64 (untested; would need `lipo` or separate framework slices).
-- iOS / Catalyst (different cmake flags, different deployment target, untested).
+- Mac Catalyst (different cmake flags, different deployment target, untested).
+- tvOS / watchOS / visionOS — no current consumer.
 - Patching GDAL source — this project is intentionally a pure orchestrator over upstream tags.
