@@ -3,3 +3,6 @@ work/
 output/
 .DS_Store
 CMakeFiles/
+verify/baseline/
+verify/ios-sample/.build/
+tasks/
