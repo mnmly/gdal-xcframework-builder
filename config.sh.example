@@ -35,3 +35,26 @@ EXTRA_CMAKE_FLAGS=""
 # Search paths handed to `dylibbundler -s` so it can resolve @rpath-referenced
 # Homebrew dylibs (e.g. libexpat) without prompting interactively.
 DYLIBBUNDLER_SEARCH_PATHS="/opt/homebrew/lib /opt/homebrew/opt/expat/lib"
+
+# -------- iOS slices (Phase 1+) --------
+
+# Build iOS device + simulator slices in addition to macOS.
+# Default off until the iOS pipeline is end-to-end functional.
+BUILD_IOS=0
+
+# Minimum iOS version. 17.0 is the planned floor; lower at your own risk.
+IOS_DEPLOYMENT_TARGET="17.0"
+
+# iOS driver strip: aggressive. The iOS GDAL is configured with
+# GDAL_BUILD_OPTIONAL_DRIVERS=OFF and OGR_BUILD_OPTIONAL_DRIVERS=OFF (and
+# GDAL_ENABLE_PLUGINS=OFF — non-negotiable, iOS forbids dlopen). That
+# disables everything optional. The lists below re-enable exactly the
+# drivers PDAL/SwiftPDAL actually use. See scripts/deps/README.md for
+# the audit rationale.
+#
+# Always-on (no flag needed): MEM (GTIFF auto-enables itself + COG when
+# TIFF/GeoTIFF deps are present, which they will be on iOS).
+#
+# Names are the GDAL CMake driver IDs in UPPERCASE, no prefix.
+IOS_ENABLED_RASTER_DRIVERS="GTIFF VRT"
+IOS_ENABLED_VECTOR_DRIVERS="SHAPE GEOJSON SQLITE GPKG"

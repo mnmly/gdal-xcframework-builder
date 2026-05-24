@@ -1,0 +1,16 @@
+# CMake toolchain file: iOS arm64 simulator (Apple Silicon hosts).
+#
+# Identical to ios-device.cmake except for CMAKE_OSX_SYSROOT. The slice
+# difference shows up in LC_BUILD_VERSION's platform tag, not in arch.
+
+set(CMAKE_SYSTEM_NAME iOS)
+set(CMAKE_SYSTEM_PROCESSOR arm64)
+set(CMAKE_OSX_SYSROOT iphonesimulator)
+set(CMAKE_OSX_ARCHITECTURES arm64)
+set(CMAKE_OSX_DEPLOYMENT_TARGET 17.0)
+set(CMAKE_XCODE_ATTRIBUTE_ENABLE_BITCODE NO)
+
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
