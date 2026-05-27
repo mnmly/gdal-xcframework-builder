@@ -490,13 +490,15 @@ if [ "${RELEASE:-0}" = "1" ]; then
         echo "RELEASE=1 set but GH_RELEASE_REPO is empty in config.sh — skipping gh release" >&2
         exit 0
     fi
-    TAG="gdal-v${GDAL_VERSION}"
+    TAG="${RELEASE_TAG:-gdal-v${GDAL_VERSION}}"
+    TITLE="${RELEASE_TITLE:-GDAL v${GDAL_VERSION} Framework}"
+    NOTES="${RELEASE_NOTES:-Binary framework for GDAL v${GDAL_VERSION}}"
     step "Publishing gh release ${TAG} to ${GH_RELEASE_REPO}"
     release_assets=("${OUTPUT_DIR}/gdal.xcframework.zip")
-    [ "${BUILD_IOS}" = "1" ] && [ -f "${OUTPUT_DIR}/proj.xcframework.zip" ] \
+    [ -f "${OUTPUT_DIR}/proj.xcframework.zip" ] \
         && release_assets+=("${OUTPUT_DIR}/proj.xcframework.zip")
     gh release create "${TAG}" "${release_assets[@]}" \
         --repo "${GH_RELEASE_REPO}" \
-        --title "GDAL v${GDAL_VERSION} Framework" \
-        --notes "Binary framework for GDAL v${GDAL_VERSION}"
+        --title "${TITLE}" \
+        --notes "${NOTES}"
 fi
