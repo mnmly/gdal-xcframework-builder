@@ -3,7 +3,7 @@
 # GDAL release.
 #
 # Usage: ./build.sh <GDAL_VERSION>             e.g. ./build.sh 3.12.4
-#        BUILD_IOS=1 ./build.sh <GDAL_VERSION>  also build iOS device + sim slices
+#        BUILD_IOS=0 ./build.sh <GDAL_VERSION>  skip iOS (macOS only — default is both)
 #        RELEASE=1 ./build.sh <GDAL_VERSION>    publish a gh release
 #
 # Architecture: the 8 build phases (clone, configure, build, framework assembly,
@@ -36,9 +36,9 @@ source "${ROOT}/scripts/lib.sh"
 : "${DISABLED_OGR_DRIVERS:=XLS XLSX VFK CAD}"
 : "${EXTRA_CMAKE_FLAGS:=}"
 : "${DYLIBBUNDLER_SEARCH_PATHS:=/opt/homebrew/lib /opt/homebrew/opt/expat/lib}"
-: "${BUILD_IOS:=0}"
+: "${BUILD_IOS:=1}"
 : "${IOS_DEPLOYMENT_TARGET:=17.0}"
-: "${IOS_ENABLED_RASTER_DRIVERS:=GTIFF VRT}"
+: "${IOS_ENABLED_RASTER_DRIVERS:=GTIFF VRT PNG JPEG}"
 : "${IOS_ENABLED_VECTOR_DRIVERS:=SHAPE GEOJSON SQLITE GPKG}"
 
 # Preflight: tools and Homebrew deps that aren't auto-discovered by cmake but

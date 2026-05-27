@@ -87,7 +87,7 @@ When `BUILD_IOS=1`, `build_ios_slices()` runs after `build_macos_slice()` and pr
 
 - `BUILD_IOS=1`
 - `IOS_DEPLOYMENT_TARGET="17.0"`
-- `IOS_ENABLED_RASTER_DRIVERS="GTIFF VRT"`
+- `IOS_ENABLED_RASTER_DRIVERS="GTIFF VRT PNG JPEG"`
 - `IOS_ENABLED_VECTOR_DRIVERS="SHAPE GEOJSON SQLITE GPKG"`
 
 ### proj.xcframework subtle constraint

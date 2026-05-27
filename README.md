@@ -22,14 +22,21 @@ missing `@rpath/libfoo.dylib`, `brew install foo` and rerun.
 ## Build
 
 ```sh
-make GDAL_VERSION=3.12.4
+make GDAL_VERSION=3.12.4 xcframework            # macOS + iOS (default)
+make GDAL_VERSION=3.12.4 BUILD_IOS=0 xcframework # macOS only
 ```
 
 Or directly:
 
 ```sh
-./build.sh 3.12.4
+./build.sh 3.12.4               # macOS + iOS (default)
+BUILD_IOS=0 ./build.sh 3.12.4   # macOS only
 ```
+
+The default builds both macOS and iOS (device + simulator). Set `BUILD_IOS=0`
+to skip iOS — much faster, but you lose `proj.xcframework` and the iOS
+slices of `gdal.xcframework`. iOS deps are cached in `work/deps-cache/`
+across runs; only the first build pays the ~15-min cross-compile cost.
 
 This will:
 
@@ -47,9 +54,9 @@ This will:
 ## Other targets
 
 ```sh
-make GDAL_VERSION=3.12.4 release           # also gh release create
-make GDAL_VERSION=3.12.4 xcframework-ios   # macOS + iOS device + iOS simulator
-make GDAL_VERSION=3.12.4 release-ios       # iOS build + gh release create
+make GDAL_VERSION=3.12.4 release           # macOS + iOS + gh release create
+make GDAL_VERSION=3.12.4 xcframework-ios   # explicit alias of the default
+make GDAL_VERSION=3.12.4 release-ios       # explicit alias for `release`
 make verify-ios                            # build + run verify/ios-sample
 make verify-macos-baseline                 # regression-diff against baseline
 make clean                                 # wipe work/
