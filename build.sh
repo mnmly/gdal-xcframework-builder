@@ -28,6 +28,8 @@ if [ ! -f "${ROOT}/config.sh" ]; then
 fi
 # shellcheck disable=SC1091
 source "${ROOT}/config.sh"
+# shellcheck disable=SC1091
+source "${ROOT}/scripts/lib.sh"
 
 : "${OUTPUT_DIR:=${ROOT}/output}"
 : "${ARCHS:=arm64}"
@@ -185,6 +187,16 @@ build_macos_slice() {
     else
         echo "warning: no LICENSE file found in ${SRC_DIR}" >&2
     fi
+
+    ############################################
+    step "5b/9 [macOS] Emit module.modulemap"
+    ############################################
+    # CMake's GDAL_ENABLE_MACOSX_FRAMEWORK doesn't write a modulemap, so
+    # Swift consumers can't `import gdal` against the framework as-shipped.
+    # Emit one with explicit headers for the CPL/OGR APIs that gdal.h's
+    # umbrella omits. Phase 8 codesign re-seals the bundle and covers it.
+    write_gdal_modulemap "${FW}/Versions/A/Modules/module.modulemap"
+    ( cd "${FW}" && ln -sfn Versions/Current/Modules Modules )
 
     ############################################
     step "6/9  [macOS] Bundle dylib dependencies"

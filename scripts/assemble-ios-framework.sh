@@ -22,6 +22,8 @@ GDAL_VERSION="${1:?usage: $0 <GDAL_VERSION> <device|simulator>}"
 SDK="${2:?usage: $0 <GDAL_VERSION> <device|simulator>}"
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck disable=SC1091
+source "${ROOT}/scripts/lib.sh"
 WORK="${ROOT}/work/gdal-${GDAL_VERSION}"
 INSTALL="${WORK}/install-ios-${SDK}"
 DEPS_CACHE="${ROOT}/work/deps-cache/ios-${SDK}"
@@ -102,20 +104,11 @@ cat > "${GDAL_FW}/Info.plist" <<EOF
 EOF
 plutil -convert binary1 "${GDAL_FW}/Info.plist"
 
-# module.modulemap — declare the framework module + system-lib link
-# directives so consumers don't need to add explicit linker flags for
-# the SDK libs we depend on.
-cat > "${GDAL_FW}/Modules/module.modulemap" <<'EOF'
-framework module gdal {
-    umbrella header "gdal.h"
-    export *
-    module * { export * }
-    link "z"
-    link "xml2"
-    link "iconv"
-    link "c++"
-}
-EOF
+# module.modulemap — declare the framework module + explicit headers for
+# the CPL/OGR APIs that gdal.h's umbrella doesn't transitively include,
+# plus system-lib link directives. Shared with the macOS slice via
+# scripts/lib.sh so both modulemaps stay in lockstep.
+write_gdal_modulemap "${GDAL_FW}/Modules/module.modulemap"
 
 echo "  -> ${GDAL_FW}"
 ls -lh "${GDAL_FW}/gdal" | awk '{print "     gdal:", $5}'
