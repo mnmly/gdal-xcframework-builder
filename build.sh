@@ -200,6 +200,31 @@ build_macos_slice() {
         -p "@loader_path/Libraries/" \
         "${search_flags[@]}"
 
+    # Dual-sqlite avoidance. gdal links to /usr/lib/libsqlite3.dylib (system),
+    # but libspatialite (and potentially other bundled deps) pull in
+    # Homebrew's libsqlite3 via dylibbundler. Two sqlite copies = two distinct
+    # global hash tables; an sqlite3* opened in one and passed to the other
+    # crashes on the next sqlite3_create_function_v2() call inside
+    # InitSpatialite during GPKG dataset create. Retarget any bundled
+    # libsqlite3 references back to the system one, then remove the duplicate.
+    local fw_libs_dir="./${FW}/Versions/A/Libraries"
+    local bundled_sqlite
+    bundled_sqlite=$(ls "${fw_libs_dir}"/libsqlite3*.dylib 2>/dev/null || true)
+    if [ -n "${bundled_sqlite}" ]; then
+        for lib in "${fw_libs_dir}"/*.dylib; do
+            otool -L "$lib" | awk '/libsqlite3[.0-9]*\.dylib/{print $1}' | while read -r dep; do
+                case "$dep" in
+                    /usr/lib/*) ;;
+                    *)
+                        install_name_tool -change "$dep" \
+                            "/usr/lib/libsqlite3.dylib" "$lib" 2>/dev/null || true
+                        ;;
+                esac
+            done
+        done
+        rm -f "${fw_libs_dir}"/libsqlite3*.dylib
+    fi
+
     ############################################
     step "7/9  [macOS] Normalise rpaths inside bundled dylibs"
     ############################################
